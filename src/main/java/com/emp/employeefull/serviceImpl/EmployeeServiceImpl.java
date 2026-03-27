@@ -1,17 +1,26 @@
 package com.emp.employeefull.serviceImpl;
 
+
+import com.emp.employeefull.dto.AddressDto;
+import com.emp.employeefull.dto.AddressDtoRequest;
 import com.emp.employeefull.dto.EmployeeDto;
 import com.emp.employeefull.entity.Employee;
 import com.emp.employeefull.exceptionn.CustomException;
+import com.emp.employeefull.feignClient.AddressClient;
 import com.emp.employeefull.repo.EmployeeRepository;
-import com.emp.employeefull.response.EmployeeResponse;
-import com.emp.employeefull.response.ErrorResponse;
+
 import com.emp.employeefull.service.EmployeeService;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -23,6 +32,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         this.employeeRepository = employeeRepository;
     }
+     @Autowired
+     private AddressClient addressClient;
 
     @Override
     public Employee getByEmployeeId(Long employeeId){
@@ -38,14 +49,43 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employee;
     }
 
+    @Transactional(propagation = Propagation.REQUIRED)
     @Override
-    public Employee createEmployeeRecord(Employee employee) {
+    public EmployeeDto createEmployeeRecord(EmployeeDto employee) {
         log.info("Entered Into The Service to createEmployeeRecord Method");
         try {
-            Employee employeeDB = employeeRepository.save(employee);
+            Employee employeeEntity = new Employee();
+            employeeEntity.setFullName(employee.getFullName());
+            employeeEntity.setLastName(employee.getLastName());
+            employeeEntity.setEmail(employee.getEmail());
+            employeeEntity.setPhoneNumber(String.valueOf(employee.getPhoneNumber()));
+            employeeEntity.setBloodGroup(employee.getBloodGroup());
+            employeeEntity.setSalary(employee.getSalary());
+        
+            Employee employeeDB = employeeRepository.save(employeeEntity);
             log.info("Employee created successfully: {}", employeeDB);
-            return employeeDB;
+            
+             List<AddressDtoRequest> validAddresses = employee.getAddresss().stream().filter(Objects::nonNull).toList();
+               
+             List<AddressDto> addressDtoListt=new ArrayList<>();
 
+            for (AddressDtoRequest address : validAddresses) {
+
+                AddressDto addressDto = new AddressDto();
+                addressDto.setStreet(address.getStreet());
+                addressDto.setCity(address.getCity());
+                addressDto.setState(address.getState());
+                addressDto.setCountry(address.getCountry());
+                addressDto.setPincodeString(address.getPincodeString());
+                addressDto.setAddressType(address.getAddressType());
+                addressDto.setEmployeeId(employeeDB.getId());
+
+                addressDtoListt.add(addressDto);
+            
+            }
+            addressClient.SaveAddress(addressDtoListt);
+            return getEmployeeDto(employeeDB);
+            
         }catch (Exception e) {
             throw new CustomException(
                     "Database error",
@@ -56,20 +96,36 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
 
     }
+ private EmployeeDto getEmployeeDto(Employee employeeDB) {
 
+        EmployeeDto employeeDto = new EmployeeDto();
+        employeeDto.setId(employeeDB.getId());
+        employeeDto.setFullName(employeeDB.getFullName());
+        employeeDto.setLastName(employeeDB.getLastName());
+        employeeDto.setEmail(employeeDB.getEmail());
+        employeeDto.setPhoneNumber(employeeDB.getPhoneNumber());
+        employeeDto.setBloodGroup(employeeDB.getBloodGroup());
+        employeeDto.setSalary(employeeDB.getSalary());
+        return employeeDto;
+    }
+
+ @Transactional(propagation = Propagation.REQUIRED, rollbackFor = CustomException.class)
     @Override
-    public Employee updateEmployeeRecord(Employee employee) {
+    public EmployeeDto updateEmployeeRecord(EmployeeDto employee) {
         log.info("Entered Into The Service to updateEmployeeRecord Method");
         try {
-           /* if(employee.getId()!=null){
-                Employee fetchedEmployeeDB=employeeRepository.getById(employee.getId());
-                mapToEmployee(fetchedEmployeeDB);
-            }else {
-                throw new CustomException();
-            }*/
-            Employee employeeDB = employeeRepository.save(employee);
+           Employee employeeEntity = new Employee();
+            employeeEntity.setFullName(employee.getFullName());
+            employeeEntity.setLastName(employee.getLastName());
+            employeeEntity.setEmail(employee.getEmail());
+            employeeEntity.setPhoneNumber(String.valueOf(employee.getPhoneNumber()));
+            employeeEntity.setBloodGroup(employee.getBloodGroup());
+            employeeEntity.setSalary(employee.getSalary());
+            
+            Employee employeeDB = employeeRepository.save(employeeEntity);
             log.info("Employee created successfully: {}", employeeDB);
-            return employeeDB;
+
+            return getEmployeeDto(employeeDB);
 
         } catch (Exception e) {
             log.error("Error while saving employee", e);

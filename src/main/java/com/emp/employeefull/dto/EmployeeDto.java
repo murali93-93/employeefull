@@ -2,15 +2,30 @@ package com.emp.employeefull.dto;
 
 import java.util.List;
 
-public record EmployeeDto(Long id,String name,String email,Long phoneNumber
-                         ,String bloodGroup,List<String> address,double salary,String projectId) {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    /*private Long id;
-    private String name;
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class EmployeeDto{
+
+    private Long id;
+
+    private String fullName;
+
+    private String lastName;
+
     private String email;
-    private Long phoneNumber;
+
+    private String phoneNumber;
+
     private String bloodGroup;
-    private List<String> address;
+
     private double salary;
-    private String projectId;  // O*/
+
+    private List<AddressDtoRequest> addresss;
 }
+   
+
